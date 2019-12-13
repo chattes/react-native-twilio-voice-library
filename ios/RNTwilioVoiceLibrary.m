@@ -315,9 +315,54 @@ RCT_REMAP_METHOD(getActiveCall,
     NSLog(@"  >> Ignoring call from %@", callInvite.from);
     return;
   }
+    
+    
+    NSString *Session = [[NSUserDefaults standardUserDefaults]stringForKey:@"SESSION"];
+    NSString *contactsURL = [[NSUserDefaults standardUserDefaults]stringForKey:@"URL"];
+    NSString *bot = [[NSUserDefaults standardUserDefaults]stringForKey:@"CONTACTS_BOT"];
+    
+    if([Session isEqualToString:@""]){
+        return;
+    }
+    
+    if([callInvite.from containsString:@"client"]){
+        NSArray *items = [callInvite.from componentsSeparatedByString:@":"];
+        NSString *caller_id = [items objectAtIndex:1];
+        NSString *queryParams = [NSString stringWithFormat:@"?userId=%@&botId=%@",caller_id,bot];
+        
+        NSString *fullUrl = [contactsURL stringByAppendingString:queryParams];
+        
+        NSMutableURLRequest *request = [[NSMutableURLRequest alloc] init];
+        [request setURL:[NSURL URLWithString:fullUrl]];
+        [request setHTTPMethod:@"GET"];
+            [request setValue:Session forHTTPHeaderField:@"sessionId"];
+        
+        NSURLSession *session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]];
+        [[session dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+            NSString *requestReply = [[NSString alloc] initWithData:data encoding:NSASCIIStringEncoding];
+            NSLog(@"Request reply: %@", requestReply);
+            NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *) response;
+            NSInteger respCode = [httpResponse statusCode];
+            NSString *caller_name = callInvite.from;
+            if (respCode == 200 ) {
+                NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+                caller_name = [json objectForKey:@"userName"];
+            }
+            
+            self.callInvite = callInvite;
+            [self reportIncomingCallFrom:caller_name withUUID:callInvite.uuid];
+        }] resume];
+
+    }else{
+          self.callInvite = callInvite;
+          [self reportIncomingCallFrom:callInvite.from withUUID:callInvite.uuid];
+    }
+
+    
+    
+    
   
-  self.callInvite = callInvite;
-  [self reportIncomingCallFrom:callInvite.from withUUID:callInvite.uuid];
+
 }
 
 - (void)handleCallInviteCanceled:(TVOCallInvite *)callInvite {
@@ -666,4 +711,5 @@ RCT_REMAP_METHOD(getActiveCall,
 }
 
 @end
+
 
