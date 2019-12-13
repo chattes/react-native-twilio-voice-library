@@ -12,6 +12,7 @@ import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.service.notification.StatusBarNotification;
@@ -25,7 +26,24 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.twilio.voice.CallInvite;
 import com.twilio.voice.CancelledCallInvite;
 
+
+import org.json.JSONException;
+import org.json.JSONObject;
+import java.util.concurrent.TimeUnit;
+
+
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
+
+
+import java.io.IOException;
+
 import java.util.List;
+
+import okhttp3.HttpUrl;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
 import static android.content.Context.ACTIVITY_SERVICE;
 
@@ -53,6 +71,7 @@ import static space.amal.twilio.RNTwilioVoiceLibraryModule.CLEAR_MISSED_CALLS_NO
 public class CallNotificationManager {
 
     private static final String VOICE_CHANNEL = "default";
+    public static String Caller_name_global = "";
 
     private NotificationCompat.InboxStyle inboxStyle = new NotificationCompat.InboxStyle();
 
@@ -117,6 +136,46 @@ public class CallNotificationManager {
         return launchIntent;
     }
 
+
+    class RequestTask extends AsyncTask<Object, String, String>{
+        @Override
+        protected String doInBackground(Object... objects) {
+            String id = (String) objects[0];
+            String sessionId = (String) objects[1];
+            String urlContacts = (String) objects[2];
+            String bot = (String) objects[3];
+
+
+            OkHttpClient client = new OkHttpClient();
+
+            HttpUrl.Builder urlBuilder = HttpUrl.parse(urlContacts).newBuilder();
+            urlBuilder.addQueryParameter("userId", id);
+            urlBuilder.addQueryParameter("botId", bot);
+
+            String url = urlBuilder.build().toString();
+
+            Request request = new Request.Builder().url(url).header("sessionId", sessionId).build();
+
+            String callerName = "Unknown";
+            try{
+                Response response = client.newCall(request).execute();
+                String jsonData = response.body().string();
+                JSONObject jObject = new JSONObject(jsonData);
+                callerName = jObject.getString("userName");
+
+                Caller_name_global = callerName;
+
+            }catch(IOException e){
+
+            }catch(JSONException e){
+
+            }
+
+            return callerName;
+
+        }
+    }
+
     public void createIncomingCallNotification(ReactApplicationContext context,
                                                CallInvite callInvite,
                                                int notificationId,
@@ -142,6 +201,47 @@ public class CallNotificationManager {
          */
         initCallNotificationsChannel(notificationManager);
 
+
+//      FrontM Changes *****************
+
+        SharedPreferences sharedPref = context.getSharedPreferences("NativeStorage", Context.MODE_PRIVATE);
+        String session = sharedPref.getString("SESSION", "none");
+        String url = sharedPref.getString("URL", "none");
+        String bot = sharedPref.getString("CONTACTS_BOT", "none");
+
+        if(session.equalsIgnoreCase("none")){
+            return;
+        }
+
+        String caller_name = callInvite.getFrom();
+
+        if(caller_name.toLowerCase().contains("client")){
+            String caller_id = callInvite.getFrom().split(":")[1];
+
+            try{
+                caller_name = new RequestTask().execute(caller_id, session, url, bot).get(10000, TimeUnit.MILLISECONDS);
+
+            }catch(InterruptedException e){
+                return;
+
+            }catch(ExecutionException e){
+                return;
+
+            }catch(TimeoutException e){
+                return;
+
+            }
+            if(caller_name == "" || caller_name == "Unknown"){
+                return;
+            }
+        }
+
+        Caller_name_global = caller_name;
+
+
+
+//      *********************************
+
         NotificationCompat.Builder notificationBuilder =
                 new NotificationCompat.Builder(context, VOICE_CHANNEL)
                         .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -149,7 +249,7 @@ public class CallNotificationManager {
                         .setCategory(NotificationCompat.CATEGORY_CALL)
                         .setSmallIcon(R.drawable.ic_call_white_24dp)
                         .setContentTitle("Incoming call")
-                        .setContentText(callInvite.getFrom() + " is calling")
+                        .setContentText(Caller_name_global + " is calling")
                         .setOngoing(true)
                         .setAutoCancel(true)
                         .setExtras(extras)
@@ -238,7 +338,7 @@ public class CallNotificationManager {
                         .setCategory(NotificationCompat.CATEGORY_MESSAGE)
                         .setSmallIcon(R.drawable.ic_call_missed_white_24dp)
                         .setContentTitle("Missed call")
-                        .setContentText(callInvite.getFrom() + " called")
+                        .setContentText(Caller_name_global + " called")
                         .setAutoCancel(true)
                         .setShowWhen(true)
                         .setExtras(extras)
@@ -325,7 +425,7 @@ public class CallNotificationManager {
         } else {
             inboxStyle.setBigContentTitle(String.valueOf(missedCalls) + " missed calls");
         }
-        inboxStyle.addLine("from: " +callInvite.getFrom());
+        inboxStyle.addLine("from: " +Caller_name_global);
         sharedPrefEditor.putInt(MISSED_CALLS_GROUP, missedCalls);
         sharedPrefEditor.commit();
 
@@ -535,3 +635,4 @@ public class CallNotificationManager {
         notificationManager.cancel(HANGUP_NOTIFICATION_ID);
     }
 }
+

@@ -463,6 +463,18 @@ public class RNTwilioVoiceLibraryModule extends ReactContextBaseJavaModule imple
             return;
         }
 
+
+        ReactApplicationContext context = getReactApplicationContext();
+
+        SharedPreferences sharedPref = context.getSharedPreferences("NativeStorage", Context.MODE_PRIVATE);
+        String session = sharedPref.getString("SESSION", "none");
+        String url = sharedPref.getString("URL", "none");
+        String bot = sharedPref.getString("CONTACTS_BOT", "none");
+
+        if(session.equalsIgnoreCase("none")){
+            return;
+        }
+
         if (intent.getAction().equals(ACTION_INCOMING_CALL)) {
             CallInvite incoming = intent.getParcelableExtra(INCOMING_CALL_INVITE);
 
@@ -489,8 +501,7 @@ public class RNTwilioVoiceLibraryModule extends ReactContextBaseJavaModule imple
                 // send a JS event ONLY if the app's importance is FOREGROUND or SERVICE
                 // at startup the app would try to fetch the activeIncoming calls
                 int appImportance = callNotificationManager.getApplicationImportance(getReactApplicationContext());
-                if (appImportance == RunningAppProcessInfo.IMPORTANCE_FOREGROUND ||
-                        appImportance == RunningAppProcessInfo.IMPORTANCE_SERVICE) {
+                if (appImportance <= 1001) {
 
                     final WritableMap params = Arguments.createMap();
                     params.putString("call_sid", activeCallInvite.getCallSid());
@@ -866,3 +877,4 @@ public class RNTwilioVoiceLibraryModule extends ReactContextBaseJavaModule imple
         }
     }
 }
+
