@@ -204,33 +204,11 @@ public class CallNotificationManager {
 
 //      FrontM Changes *****************
 
-        SharedPreferences sharedPref = context.getSharedPreferences("NativeStorage", Context.MODE_PRIVATE);
-        String session = sharedPref.getString("SESSION", "none");
-        String url = sharedPref.getString("URL", "none");
-        String bot = sharedPref.getString("CONTACTS_BOT", "none");
-
-        if(session.equalsIgnoreCase("none")){
-            return;
-        }
-
         String caller_name = callInvite.getFrom();
 
         if(caller_name.toLowerCase().contains("client")){
             String caller_id = callInvite.getFrom().split(":")[1];
-
-            try{
-                caller_name = new RequestTask().execute(caller_id, session, url, bot).get(10000, TimeUnit.MILLISECONDS);
-
-            }catch(InterruptedException e){
-                return;
-
-            }catch(ExecutionException e){
-                return;
-
-            }catch(TimeoutException e){
-                return;
-
-            }
+            caller_name = getCallerName(context, caller_id);
             if(caller_name == "" || caller_name == "Unknown"){
                 return;
             }
@@ -285,6 +263,27 @@ public class CallNotificationManager {
 
         notificationManager.notify(notificationId, notificationBuilder.build());
         RNTwilioVoiceLibraryModule.callNotificationMap.put(INCOMING_NOTIFICATION_PREFIX+callInvite.getCallSid(), notificationId);
+    }
+
+    private String getCallerName(ReactApplicationContext context, String caller_id){
+        SharedPreferences sharedPref = context.getSharedPreferences("NativeStorage", Context.MODE_PRIVATE);
+        String session = sharedPref.getString("SESSION", "none");
+        String url = sharedPref.getString("URL", "none");
+        String bot = sharedPref.getString("CONTACTS_BOT", "none");
+
+        if(session.equalsIgnoreCase("none")){
+            return "";
+        }
+
+        try{
+            return new RequestTask().execute(caller_id, session, url, bot).get(10000, TimeUnit.MILLISECONDS);
+        }catch(InterruptedException e){
+            return "";
+        }catch(ExecutionException e){
+            return "";
+        }catch(TimeoutException e){
+            return "";
+        }
     }
 
     public void initCallNotificationsChannel(NotificationManager notificationManager) {
@@ -538,9 +537,18 @@ public class CallNotificationManager {
         extras.putString(CALL_SID_KEY, callSid);
         extras.putString(NOTIFICATION_TYPE, ACTION_HANGUP_CALL);
 
+        if(caller.toLowerCase().contains("client")){
+            String caller_id = caller.split(":")[1];
+            caller = getCallerName(context, caller_id);
+            if(caller == "" || caller == "Unknown"){
+                return;
+            }
+        }
+        Caller_name_global = caller;
+
         NotificationCompat.Builder notification = new NotificationCompat.Builder(context, VOICE_CHANNEL)
                 .setContentTitle("Call in progress")
-                .setContentText(caller)
+                .setContentText(Caller_name_global)
                 .setSmallIcon(R.drawable.ic_call_white_24dp)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
