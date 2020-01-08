@@ -641,7 +641,7 @@ public class RNTwilioVoiceLibraryModule extends ReactContextBaseJavaModule imple
             params.putString("call_state", "CONNECTED");
             callNotificationManager.createHangupLocalNotification(getReactApplicationContext(),
                     activeCallInvite.getCallSid(),
-                    activeCallInvite.getFrom());
+                    CallNotificationManager.Caller_name_global);
 
             if (BuildConfig.DEBUG) {
                 Log.d(TAG, "Sending EVENT_CONNECTION_DID_CONNECT");
