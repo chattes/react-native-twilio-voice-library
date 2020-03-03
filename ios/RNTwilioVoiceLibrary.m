@@ -188,6 +188,8 @@ RCT_REMAP_METHOD(getActiveCall,
     }
     if (self.call.to){
       [params setObject:self.call.to forKey:@"call_to"];
+    }else if ([_callParams objectForKey:@"To"]){
+      [params setObject:[_callParams valueForKey:@"To"] forKey:@"call_to"];
     }
     if (self.call.from){
       [params setObject:self.call.from forKey:@"call_from"];
@@ -709,5 +711,6 @@ RCT_REMAP_METHOD(getActiveCall,
 }
 
 @end
+
 
 
