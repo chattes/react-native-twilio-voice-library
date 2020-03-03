@@ -331,13 +331,13 @@ RCT_REMAP_METHOD(getActiveCall,
         NSString *queryParams = [NSString stringWithFormat:@"?userId=%@&botId=%@",caller_id,bot];
         
         NSString *fullUrl = [contactsURL stringByAppendingString:queryParams];
-        
         NSMutableURLRequest *request = [[NSMutableURLRequest alloc] init];
         [request setURL:[NSURL URLWithString:fullUrl]];
         [request setHTTPMethod:@"GET"];
             [request setValue:Session forHTTPHeaderField:@"sessionId"];
         
         NSURLSession *session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]];
+        [self reportIncomingCallFrom:callInvite.from withUUID:callInvite.uuid];
         [[session dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
             NSString *requestReply = [[NSString alloc] initWithData:data encoding:NSASCIIStringEncoding];
             NSLog(@"Request reply: %@", requestReply);
@@ -348,9 +348,7 @@ RCT_REMAP_METHOD(getActiveCall,
                 NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
                 caller_name = [json objectForKey:@"userName"];
             }
-            
             self.callInvite = callInvite;
-            [self reportIncomingCallFrom:caller_name withUUID:callInvite.uuid];
         }] resume];
 
     }else{
