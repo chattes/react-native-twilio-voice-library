@@ -326,45 +326,13 @@ RCT_REMAP_METHOD(getActiveCall,
     if([Session isEqualToString:@""]){
         return;
     }
-    
+    self.callInvite = callInvite;
     if([callInvite.from containsString:@"client"]){
-        NSArray *items = [callInvite.from componentsSeparatedByString:@":"];
-        NSString *caller_id = [items objectAtIndex:1];
-        NSString *queryParams = [NSString stringWithFormat:@"?userId=%@&botId=%@",caller_id,bot];
+         [self reportIncomingCallFrom:@"New incoming call" withUUID:callInvite.uuid];
         
-        NSString *fullUrl = [contactsURL stringByAppendingString:queryParams];
-        
-        NSMutableURLRequest *request = [[NSMutableURLRequest alloc] init];
-        [request setURL:[NSURL URLWithString:fullUrl]];
-        [request setHTTPMethod:@"GET"];
-            [request setValue:Session forHTTPHeaderField:@"sessionId"];
-        
-        NSURLSession *session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]];
-        [[session dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
-            NSString *requestReply = [[NSString alloc] initWithData:data encoding:NSASCIIStringEncoding];
-            NSLog(@"Request reply: %@", requestReply);
-            NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *) response;
-            NSInteger respCode = [httpResponse statusCode];
-            NSString *caller_name = callInvite.from;
-            if (respCode == 200 ) {
-                NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
-                caller_name = [json objectForKey:@"userName"];
-            }
-            
-            self.callInvite = callInvite;
-            [self reportIncomingCallFrom:caller_name withUUID:callInvite.uuid];
-        }] resume];
-
     }else{
-          self.callInvite = callInvite;
           [self reportIncomingCallFrom:callInvite.from withUUID:callInvite.uuid];
     }
-
-    
-    
-    
-  
-
 }
 
 - (void)handleCallInviteCanceled:(TVOCallInvite *)callInvite {
@@ -648,6 +616,34 @@ RCT_REMAP_METHOD(getActiveCall,
       
       // RCP: Workaround per https://forums.developer.apple.com/message/169511
       // [TwilioVoice configureAudioSession];
+        
+        //Get the username and update the call display.
+        NSString *Session = [[NSUserDefaults standardUserDefaults]stringForKey:@"SESSION"];
+        NSString *contactsURL = [[NSUserDefaults standardUserDefaults]stringForKey:@"URL"];
+        NSString *bot = [[NSUserDefaults standardUserDefaults]stringForKey:@"CONTACTS_BOT"];
+        NSArray *items = [self.callInvite.from componentsSeparatedByString:@":"];
+               NSString *caller_id = [items objectAtIndex:1];
+               NSString *queryParams = [NSString stringWithFormat:@"?userId=%@&botId=%@",caller_id,bot];
+               NSString *fullUrl = [contactsURL stringByAppendingString:queryParams];
+               NSMutableURLRequest *request = [[NSMutableURLRequest alloc] init];
+               [request setURL:[NSURL URLWithString:fullUrl]];
+               [request setHTTPMethod:@"GET"];
+                   [request setValue:Session forHTTPHeaderField:@"sessionId"];
+               NSURLSession *session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]];
+               [[session dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+                   NSString *requestReply = [[NSString alloc] initWithData:data encoding:NSASCIIStringEncoding];
+                   NSLog(@"Request reply: %@", requestReply);
+                   NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *) response;
+                   NSInteger respCode = [httpResponse statusCode];
+                   NSString *caller_name = self.callInvite.from;
+                   if (respCode == 200 ) {
+                       NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+                       caller_name = [json objectForKey:@"userName"];
+                        CXHandle *callHandleNew = [[CXHandle alloc] initWithType:CXHandleTypeGeneric value:caller_name];
+                       callUpdate.remoteHandle = callHandleNew;
+                       [[self callKitProvider] reportCallWithUUID: uuid  updated: callUpdate];
+                   }
+               }] resume];
     } else {
       NSLog(@"Failed to report incoming call successfully: %@.", [error localizedDescription]);
     }
