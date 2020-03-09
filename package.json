@@ -1,7 +1,7 @@
 {
   "name": "react-native-twilio-voice-library",
   "title": "React Native Twilio Voice Library",
-  "version": "0.1.2",
+  "version": "0.1.1",
   "description": "",
   "main": "index.js",
   "scripts": {
