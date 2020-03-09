@@ -1,27 +1,23 @@
 {
-  "name": "react-native-twilio-voice-library",
-  "title": "React Native Twilio Voice Library",
-  "version": "0.1.1",
-  "description": "",
+  "name": "react-native-twilio-voice-library_frontm",
+  "title": "React Native Twilio Voice Library-Frontm",
+  "version": "1.0.0",
+  "description": "react native Twilio Voice Librareay",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\""
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rajamal/react-native-twilio-voice-library.git",
-    "baseUrl": "https://github.com/rajamal/react-native-twilio-voice-library"
+    "url": "git+https://github.com/chattes/react-native-twilio-voice-library.git",
+    "baseUrl": "https://github.com/chattes/react-native-twilio-voice-library"
   },
   "keywords": [
     "react-native"
   ],
-  "author": {
-    "name": "Amal",
-    "email": "raj.amal@gmail.com"
-  },
+  "author": "Sourav<sourav@frontm.com>",
   "license": "MIT",
   "licenseFilename": "LICENSE",
-  "readmeFilename": "README.md",
   "peerDependencies": {
     "react": "^16.8.1",
     "react-native": ">=0.59.0-rc.0 <1.0.x"
@@ -29,5 +25,12 @@
   "devDependencies": {
     "react": "^16.8.3",
     "react-native": "^0.59.10"
+  },
+  "bugs": {
+    "url": "https://github.com/chattes/react-native-twilio-voice-library/issues"
+  },
+  "homepage": "https://github.com/chattes/react-native-twilio-voice-library#readme",
+  "directories": {
+    "example": "example"
   }
 }
